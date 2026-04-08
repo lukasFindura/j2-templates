@@ -1,0 +1,8 @@
+{
+  "metadata": {
+    "name": "{{name}}"
+  },
+  "spec": {
+    "key": "value"
+  }
+}
