@@ -14,7 +14,7 @@ RESET="\033[0m"
 
 echo >&2
 
-FILE=$(pypick-file $DIR) || exit 
+FILE=$(IGNORE="README.md" pypick-file $DIR) || exit 
 # grep extracts "{{...}}", sed extracts content
 J2_VARS=$(cat $FILE | grep -o '{{[^}]*}}' | sed 's/{{//;s/}}//' | sort | uniq)
 
@@ -49,14 +49,23 @@ done
 
 echo >&2
 
+# apicli sometimes runs `cmd <<< "$something"`, even when there's
+# nothing meaningful to pass in — so our stdin (fd 0) may already be tied
+# to that here-string instead of the real terminal.
+#
+# A here-string is finite: once its content is consumed, any further
+# `read` on stdin instantly hits EOF (no waiting, no prompt) instead of
+# waiting for a keypress. That silently skips/breaks interactive prompts.
+#
+# Use </dev/tty below to read directly from the terminal, bypassing whatever is attached to fd 0.
 if [[ "$choice" == "3." ]]; then
     for var in $missing; do
-        read -e -p "$var: " -i "" val
+        read -e -p "$var: " -i "" val </dev/tty
         export "$var=$val"
     done
 elif [[ "$choice" == "2." ]]; then
     for var in $J2_VARS; do
-        read -e -p "$var: " -i "${!var}" val
+        read -e -p "$var: " -i "${!var}" val </dev/tty
         export "$var=$val"
     done
 else
